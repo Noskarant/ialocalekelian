@@ -4,7 +4,7 @@ $ProgressPreference = 'SilentlyContinue'
 $root = Join-Path $env:LOCALAPPDATA 'AtelierIA'
 New-Item -ItemType Directory -Force -Path $root | Out-Null
 function Run([string]$command,[string[]]$arguments) {
-    & $command @arguments
+    & $command @arguments | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "$command s'est terminé avec le code $LASTEXITCODE" }
 }
 function Ensure-WinGet {
