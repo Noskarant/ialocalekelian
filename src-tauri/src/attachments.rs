@@ -74,11 +74,9 @@ pub fn vision_image(path:&Path)->Result<String,String>{
     // Scale for low VRAM and bound the encoded image before sending locally to Ollama.
     let img=image::open(path).map_err(|e|format!("Impossible de lire l'image : {e}"))?;
     let resized=img.thumbnail(1280,1280).to_rgb8();
-    let mut encoded=Vec::new();
     let mut cursor=Cursor::new(Vec::new());
     image::DynamicImage::ImageRgb8(resized).write_to(&mut cursor,image::ImageFormat::Jpeg).map_err(|e|e.to_string())?;
-    encoded=cursor.into_inner();
-    Ok(base64::engine::general_purpose::STANDARD.encode(encoded))
+    Ok(base64::engine::general_purpose::STANDARD.encode(cursor.into_inner()))
 }
 fn read_text(p:&Path)->Result<String,String>{
     let metadata=std::fs::metadata(p).map_err(|e|e.to_string())?;
@@ -99,7 +97,7 @@ fn read_pdf(p:&Path)->Result<String,String>{
     let numbers:Vec<u32>=pages.keys().copied().collect();
     let mut extracted=String::new();
     for chunk in numbers.chunks(8){
-        let text=doc.extract_text_with_limit(chunk,6*1024*1024)
+        let text=doc.extract_text(chunk)
             .map_err(|e|format!("PDF texte illisible : {e}"))?;
         extracted.push_str(&text);
         if extracted.len()>32_000{break;}
