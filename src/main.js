@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import "./style.css";
 
 const $=selector=>document.querySelector(selector);
@@ -10,11 +11,11 @@ const state={
   view:"chat",messages:initial(),draft:"",imagePrompt:"",negative:"blurry, low quality, distorted, text, watermark",
   imageMode:"generate",checkpoint:"",steps:18,imageInput:"",videoInput:"",cutSilence:true,
   imageResult:null,videoResult:"",notice:"",working:false,workLabel:"",
-  online:{ollamaOnline:false,modelReady:false,comfyOnline:false,videoReady:false,
+  online:{ollamaOnline:false,modelReady:false,visionReady:false,comfyOnline:false,videoReady:false,
           checkpoints:[],gpuName:null,vramMb:null,usedMb:null,busy:false,model:"qwen3:8b"},
-  requestId:null
+  requestId:null, attachments:[], dragActive:false
 };
-const save=()=>{try{localStorage.setItem("atelier-kelian-chat",JSON.stringify(state.messages.slice(-120)))}catch{}};
+const save=()=>{try{localStorage.setItem("atelier-kelian-chat",JSON.stringify(state.messages.slice(-120).map(m=>({...m,attachments:(m.attachments||[]).map(({path,name,kind,size,supported})=>({path,name,kind,size,supported}))}))))}catch{}};
 const tabs=[["chat","Discussion","✧"],["images","Studio image","▧"],["video","Studio vidéo","▹"],["settings","Paramètres","⚙"]];
 const ready=()=>state.online.ollamaOnline&&state.online.modelReady;
 function notify(text){state.notice=text;render();}
@@ -30,9 +31,27 @@ function layout(content){
     '<main class="main"><header class="topbar"><div class="breadcrumbs">ATELIER IA <span>/</span> '+safe(tab?.[1])+'</div>'+
     '<div class="top-actions"><span class="status '+(ready()?"online":"offline")+'"><i></i>'+(ready()?"IA locale prête":"À configurer")+'</span>'+
     '<button class="icon-button" data-action="refresh" title="Actualiser">↻</button></div></header>'+
-    '<div class="content">'+content+'</div>'+
+    '<div class="content">'+content+'</div>'+(state.dragActive&&state.view==='chat'?'<div class="drop-overlay"><div class="drop-inner"><span>＋</span><strong>Dépose tes fichiers ici</strong><small>Images, PDF, Office, code et autres fichiers locaux</small></div></div>':'')+
     (state.notice?'<div class="toast"><span>'+safe(state.notice)+'</span><button data-action="dismiss">✕</button></div>':"")+
     '</main></div>';
+}
+function fileIcon(kind){return ({image:"▧",pdf:"▤",document:"▦",table:"▥",slides:"▣",text:"≡",other:"◇"})[kind]||"◇";}
+function humanSize(bytes){return bytes>=1e9?(bytes/1e9).toFixed(1)+" Go":bytes>=1e6?(bytes/1e6).toFixed(1)+" Mo":bytes>=1e3?(bytes/1e3).toFixed(0)+" Ko":bytes+" o";}
+async function addAttachments(paths){
+  if(state.working||!Array.isArray(paths)||!paths.length)return;
+  const current=state.attachments.map(a=>a.path);
+  const unique=paths.filter(path=>!current.includes(path));
+  if(!unique.length){state.dragActive=false;render();return;}
+  const allowed=unique.slice(0,Math.max(0,12-current.length));
+  if(!allowed.length){state.dragActive=false;notify("12 pièces jointes maximum par message.");return;}
+  state.dragActive=false;
+  try{
+    const infos=await invoke("inspect_attachments",{paths:allowed});
+    state.attachments.push(...infos);
+    if(unique.length>allowed.length)state.notice="Seuls les 12 premiers fichiers ont été joints.";
+    else if(infos.some(f=>!f.supported))state.notice="Certaines pièces jointes sont acceptées, mais leur contenu n'est pas lisible automatiquement.";
+    render();$("#chat-input")?.focus();
+  }catch(e){notify("Impossible de joindre le fichier : "+String(e));}
 }
 function chatView(){
   const msgs=state.messages.map(m=>'<div class="bubble-row '+m.role+'"><div class="avatar">'+(m.role==="user"?"K":"✳")+'</div><div class="bubble"><div class="by">'+(m.role==="user"?"TOI":"ATELIER IA")+'</div><div class="body">'+(m.content?safe(m.content):'<span class="dots">● ● ●</span>')+'</div></div></div>').join("");
