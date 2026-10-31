@@ -75,8 +75,9 @@ pub fn vision_image(path:&Path)->Result<String,String>{
     let img=image::open(path).map_err(|e|format!("Impossible de lire l'image : {e}"))?;
     let resized=img.thumbnail(1280,1280).to_rgb8();
     let mut encoded=Vec::new();
-    let encoder=image::codecs::jpeg::JpegEncoder::new_with_quality(&mut encoded,82);
-    resized.write_with_encoder(encoder).map_err(|e|e.to_string())?;
+    let mut cursor=Cursor::new(Vec::new());
+    image::DynamicImage::ImageRgb8(resized).write_to(&mut cursor,image::ImageFormat::Jpeg).map_err(|e|e.to_string())?;
+    encoded=cursor.into_inner();
     Ok(base64::engine::general_purpose::STANDARD.encode(encoded))
 }
 fn read_text(p:&Path)->Result<String,String>{
