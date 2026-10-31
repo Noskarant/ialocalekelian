@@ -54,18 +54,26 @@ async function addAttachments(paths){
   }catch(e){notify("Impossible de joindre le fichier : "+String(e));}
 }
 function chatView(){
-  const msgs=state.messages.map(m=>'<div class="bubble-row '+m.role+'"><div class="avatar">'+(m.role==="user"?"K":"✳")+'</div><div class="bubble"><div class="by">'+(m.role==="user"?"TOI":"ATELIER IA")+'</div><div class="body">'+(m.content?safe(m.content):'<span class="dots">● ● ●</span>')+'</div></div></div>').join("");
+  const msgs=state.messages.map(m=>'<div class="bubble-row '+m.role+'"><div class="avatar">'+(m.role==="user"?"K":"✳")+'</div><div class="bubble"><div class="by">'+(m.role==="user"?"TOI":"ATELIER IA")+'</div>'+
+    (m.attachments?.length?'<div class="history-attachments">'+m.attachments.map(f=>'<span class="history-file">'+fileIcon(f.kind)+' '+safe(f.name)+'</span>').join('')+'</div>':'')+
+    '<div class="body">'+(m.content?safe(m.content):'<span class="dots">● ● ●</span>')+'</div></div></div>').join("");
   const welcome=!state.messages.length?'<div class="welcome"><div class="welcome-spark">✳</div><div class="eyebrow">TON ESPACE DE CRÉATION PERSONNEL</div><h1>Bonjour Kélian<span class="dot">.</span></h1><p>Écris, réfléchis, crée. Une intelligence artificielle privée, directement sur ton ordinateur.</p>'+
    '<div class="idea-grid"><button data-action="idea" data-prompt="Aide-moi à expliquer simplement une idée reçue sur les douleurs lombaires pour Instagram.">✍️ <b>Écrire un post</b><small>Du contenu pertinent et accessible</small></button>'+
    '<button data-action="idea" data-prompt="Propose-moi des idées originales de carrousels Instagram pour sensibiliser aux idées reçues sur la santé.">✳ <b>Trouver des idées</b><small>Pour ton compte professionnel</small></button>'+
    '<button data-action="idea" data-prompt="Explique-moi avec des sources scientifiques les principes de la douleur chronique.">◈ <b>Comprendre un sujet</b><small>Une réponse claire et nuancée</small></button></div></div>':
    '<div class="message-list" id="message-list">'+msgs+'</div>';
+  const pending=state.attachments.length?'<div class="pending-files">'+state.attachments.map((f,i)=>'<div class="pending-file">'+
+    (f.preview?'<img src="'+f.preview+'" alt="Aperçu de la pièce jointe">':'<div class="file-symbol">'+fileIcon(f.kind)+'</div>')+
+    '<div class="file-info"><strong title="'+safe(f.name)+'">'+safe(f.name)+'</strong><small>'+humanSize(f.size)+(f.supported?' · Lisible':' · Non analysable')+'</small></div>'+
+    '<button type="button" data-action="remove-attachment" data-index="'+i+'" title="Retirer">×</button></div>').join('')+'</div>':'';
+  const disabled=!ready()||state.working;
   return '<div class="chat-page"><div class="chat-toolbar"><span>DISCUSSION PRIVÉE</span><button class="soft-btn" data-action="new-chat">＋ Nouvelle discussion</button></div>'+
-    '<div class="thread" id="thread">'+welcome+'</div>'+
-    '<div class="composer-wrap">'+(!ready()?'<div class="setup-alert">Le moteur conversationnel doit être configuré. <button data-action="tab" data-tab="settings">Configurer →</button></div>':"")+
-    '<form id="chat-form" class="composer"><textarea id="chat-input" placeholder="'+(ready()?"Pose ta question à ton IA locale…":"Configure d’abord Qwen3 dans Paramètres…")+'" '+(!ready()||state.working?"disabled":"")+' rows="2">'+safe(state.draft)+'</textarea>'+
-    '<div class="composer-bottom"><div class="model-chip"><i></i> Qwen3 8B <span>· LOCAL</span></div><div><span class="key-tip">Entrée pour envoyer</span> <button class="send-btn" type="submit" '+(!ready()||state.working||!state.draft.trim()?"disabled":"")+'>↑</button></div></div></form>'+
-    '<div class="disclaimer">◈ Aucun compte · Les conversations restent sur cet appareil</div></div></div>';
+    '<div class="thread" id="thread">'+welcome+'</div><div class="composer-wrap">'+(!ready()?'<div class="setup-alert">Le moteur conversationnel doit être configuré. <button data-action="tab" data-tab="settings">Configurer →</button></div>':'')+
+    '<form id="chat-form" class="composer">'+pending+'<div class="composer-entry"><button type="button" class="attach-btn" data-action="attach" '+(state.working?'disabled':'')+' title="Joindre plusieurs fichiers">＋</button>'+
+    '<textarea id="chat-input" placeholder="'+(ready()?"Écris un message ou joins des fichiers…":"Configure d’abord Qwen3 dans Paramètres…")+'" '+(disabled?"disabled":"")+' rows="2">'+safe(state.draft)+'</textarea></div>'+
+    '<div class="composer-bottom"><div class="model-chip"><i></i> '+(state.attachments.some(a=>a.kind==="image")?"Vision 3B":"Qwen3 8B")+' <span>· LOCAL</span></div>'+
+    '<div><span class="key-tip">Entrée pour envoyer</span> <button class="send-btn" type="submit" '+(disabled||(!state.draft.trim()&&!state.attachments.length)?"disabled":"")+'>↑</button></div></div></form>'+
+    '<div class="disclaimer">＋ Pièces jointes · Glisser-déposer · Analyse sur ton ordinateur</div></div></div>';
 }
 function imageView(){
   const modes=[["generate","Créer"],["edit","Retoucher"],["upscale","Améliorer ×4"]];
