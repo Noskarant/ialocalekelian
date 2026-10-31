@@ -60,3 +60,4 @@ jobs:
             gh release create v1.0.0 $exe --target $env:GITHUB_SHA --title 'Atelier IA Kélian v1.0.0' --notes 'Installateur Windows x64 non signé. Les modèles se téléchargent localement après installation. Validation GPU requise.'
           }
           if ($LASTEXITCODE -ne 0) { throw 'GitHub release publish failed' }
+# Rebuild: UI automatic routing and complete setup wizard
