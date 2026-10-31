@@ -15,5 +15,6 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "mul
 futures-util = "0.3"
 tokio = { version = "1", features = ["process", "fs", "time"] }
 rfd = "0.15"
+base64 = "0.22"
 dirs = "6"
 uuid = { version = "1", features = ["v4"] }
