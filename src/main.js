@@ -157,12 +157,12 @@ async function task(label,fn){
 }
 async function send(){
   const text=state.draft.trim();
-  if(!text||!ready()||state.working)return;
+  if((!text&&!state.attachments.length)||!ready()||state.working)return;
   // Deterministic local routing for explicit creative commands; no cloud classifier.
   const imageIntent=/^\s*(?:\/image\b|(?:génère|générer|crée|créer|dessine|dessiner|fais|faire)\b.{0,60}\b(?:image|photo|illustration|visuel)\b)/i.test(text);
   const photoIntent=/^\s*(?:\/retouche\b|(?:retouche|retoucher|modifie|modifier)\b.{0,50}\b(?:image|photo|visuel)\b)/i.test(text);
   const videoIntent=/^\s*(?:\/video\b|(?:monte|monter|transforme|transformer|sous-titre|sous-titrer)\b.{0,60}\b(?:vidéo|video|reel|clip)\b)/i.test(text);
-  if(imageIntent||photoIntent){
+  if(!state.attachments.length && (imageIntent||photoIntent)){
     state.imageMode=photoIntent?"edit":"generate";
     state.imagePrompt=text.replace(/^\/(image|retouche)\s*/i,"").trim();
     state.draft="";state.view="images";render();
@@ -174,7 +174,7 @@ async function send(){
     }else{notify("Le studio image doit être configuré ou une photo doit être choisie.");}
     return;
   }
-  if(videoIntent){
+  if(!state.attachments.length && videoIntent){
     state.view="video";state.draft="";render();
     if(!state.videoInput){
       const p=await invoke("pick",{kind:"video"});if(p)state.videoInput=p;
@@ -183,12 +183,18 @@ async function send(){
     notify("Vidéo reconnue : utilise « Créer mon Reel MP4 » pour lancer le montage.");
     return;
   }
-  state.working=true;state.draft="";
-  state.messages.push({role:"user",content:text},{role:"assistant",content:""});
+  if(state.attachments.some(a=>a.kind==="image")&&!state.online.visionReady){
+    notify("Installe d’abord le modèle Vision 3B dans Paramètres pour analyser les images.");
+    return;
+  }
+  const incoming=state.attachments.map(x=>({...x}));
+  state.working=true;state.draft="";state.attachments=[];
+  state.messages.push({role:"user",content:text||"Analyse les fichiers joints.",attachments:incoming},{role:"assistant",content:""});
   save();render();
   const rid=String(Date.now())+"-"+Math.random().toString(36).slice(2);
   state.requestId=rid;
-  const messages=state.messages.slice(0,-1).map(x=>({role:x.role,content:x.content}));
+  const messages=state.messages.slice(0,-1).map(x=>({role:x.role,content:x.content,
+     attachments:(x.attachments||[]).map(a=>({path:a.path}))}));
   try{
     await invoke("chat",{id:rid,messages});
     if(!state.messages.at(-1)?.content)state.messages.at(-1).content="Aucune réponse reçue.";
@@ -202,6 +208,8 @@ async function action(el){
   if(a==="refresh"){await refresh();}
   if(a==="new-chat"){state.messages=[];save();render();}
   if(a==="idea"){state.draft=el.dataset.prompt;render();$("#chat-input")?.focus();}
+  if(a==="attach"){const paths=await invoke("pick_attachments");await addAttachments(paths);}
+  if(a==="remove-attachment"){state.attachments.splice(Number(el.dataset.index),1);render();}
   if(a==="image-mode"){state.imageMode=el.dataset.mode;render();}
   if(a==="pick-image"){const p=await invoke("pick",{kind:"image"});if(p){state.imageInput=p;render();}}
   if(a==="pick-video"){const p=await invoke("pick",{kind:"video"});if(p){state.videoInput=p;render();}}
@@ -218,7 +226,9 @@ async function action(el){
       }
       if(!connected)throw Error("Ollama ne répond pas après installation. Redémarre Windows et reprends.");
       state.notice="Téléchargement du modèle Qwen3…";render();
-      await invoke("model_pull");
+      await invoke("model_pull",{model:"qwen3:8b"});
+      state.notice="Téléchargement du modèle Vision pour les images jointes…";render();
+      await invoke("model_pull",{model:"qwen2.5vl:3b"});
       state.notice="Installation du studio image et des modèles CUDA…";render();
       await invoke("install_component",{component:"images"});
       await invoke("start_engines",{component:"images"});
@@ -228,7 +238,8 @@ async function action(el){
   }
   if(a==="install"){await task("Installation "+el.dataset.component,()=>invoke("install_component",{component:el.dataset.component}));}
   if(a==="start"){await task("Démarrage "+el.dataset.component,()=>invoke("start_engines",{component:el.dataset.component}));}
-  if(a==="pull"){await task("Téléchargement Qwen3",()=>invoke("model_pull"));}
+  if(a==="pull"){await task("Téléchargement Qwen3",()=>invoke("model_pull",{model:"qwen3:8b"}));}
+  if(a==="pull-vision"){await task("Téléchargement modèle Vision",()=>invoke("model_pull",{model:"qwen2.5vl:3b"}));}
   if(a==="free"){await task("Libération de VRAM",()=>invoke("free_gpu"));}
   if(a==="run-image"){
     if(state.imageMode!=="upscale"&&!state.imagePrompt.trim()){notify("Décris d’abord l’image.");return;}
@@ -250,7 +261,7 @@ app.addEventListener("click",e=>{
 });
 app.addEventListener("input",e=>{
   const id=e.target.id;
-  if(id==="chat-input"){state.draft=e.target.value;const b=$(".send-btn");if(b)b.disabled=!state.draft.trim();}
+  if(id==="chat-input"){state.draft=e.target.value;const b=$(".send-btn");if(b)b.disabled=!state.draft.trim()&&!state.attachments.length;}
   if(id==="image-prompt")state.imagePrompt=e.target.value;
   if(id==="negative")state.negative=e.target.value;
   if(id==="checkpoint")state.checkpoint=e.target.value;
@@ -280,3 +291,18 @@ await listen("model-progress",event=>{
 render();
 void refresh();
 setInterval(()=>{if(!state.working)void refresh()},30000);
+
+try{
+  await getCurrentWebview().onDragDropEvent(event=>{
+    const payload=event.payload||{};
+    if(state.view!=="chat")return;
+    if(payload.type==="enter"||payload.type==="over"){
+      if(!state.dragActive){state.dragActive=true;render();}
+    }else if(payload.type==="leave"){
+      if(state.dragActive){state.dragActive=false;render();}
+    }else if(payload.type==="drop"){
+      state.dragActive=false;
+      void addAttachments(payload.paths||[]);
+    }
+  });
+}catch(err){console.warn("Glisser-déposer natif non disponible :",err);}
