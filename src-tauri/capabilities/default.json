@@ -1,0 +1,10 @@
+{
+  "identifier": "default",
+  "description": "Application desktop avec API Tauri limitée",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default"
+  ]
+}
