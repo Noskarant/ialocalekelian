@@ -82,6 +82,7 @@ function settingsView(){
   const metric=(label,value)=>'<div class="metric"><span>'+label+'</span><strong>'+safe(value)+'</strong></div>';
   const stateChip=bool=>'<span class="chip '+(bool?"okay":"warn")+'">'+(bool?"● Prêt":"○ À installer")+'</span>';
   return '<div class="studio settings"><div class="eyebrow">TON ENVIRONNEMENT LOCAL</div><h1>Paramètres<span class="dot">.</span></h1><p class="lead">Un moteur à la fois sur la RTX 4060 pour préserver la VRAM et la stabilité.</p>'+
+  '<div class="onboard-panel"><div><strong>Configuration complète en un clic</strong><p>Installe Ollama, Qwen3, SDXL, ComfyUI, Whisper et FFmpeg. Connexion Internet et environ 25 Go libres requis.</p></div><button data-action="install-all" '+(state.working?'disabled':'')+'>✳ Tout configurer</button></div>'+ 
   '<div class="settings-grid"><section class="panel padded"><div class="panel-title"><div>✧ <strong>Assistant conversationnel</strong></div>'+stateChip(ready())+'</div>'+
   '<p>Ollama + Qwen3 8B, avec une fenêtre de contexte adaptée à 8 Go de VRAM.</p>'+
   metric("Service Ollama",s.ollamaOnline?"En ligne":"Hors ligne")+metric("Modèle",s.modelReady?"Qwen3 8B installé":"Non téléchargé")+
@@ -130,6 +131,31 @@ async function task(label,fn){
 async function send(){
   const text=state.draft.trim();
   if(!text||!ready()||state.working)return;
+  // Deterministic local routing for explicit creative commands; no cloud classifier.
+  const imageIntent=/^\s*(?:\/image\b|(?:génère|générer|crée|créer|dessine|dessiner|fais|faire)\b.{0,60}\b(?:image|photo|illustration|visuel)\b)/i.test(text);
+  const photoIntent=/^\s*(?:\/retouche\b|(?:retouche|retoucher|modifie|modifier)\b.{0,50}\b(?:image|photo|visuel)\b)/i.test(text);
+  const videoIntent=/^\s*(?:\/video\b|(?:monte|monter|transforme|transformer|sous-titre|sous-titrer)\b.{0,60}\b(?:vidéo|video|reel|clip)\b)/i.test(text);
+  if(imageIntent||photoIntent){
+    state.imageMode=photoIntent?"edit":"generate";
+    state.imagePrompt=text.replace(/^\/(image|retouche)\s*/i,"").trim();
+    state.draft="";state.view="images";render();
+    if(photoIntent&&!state.imageInput){
+      const p=await invoke("pick",{kind:"image"});if(p)state.imageInput=p;
+    }
+    if(state.online.comfyOnline && (state.imageMode==="generate"||state.imageInput)){
+      await action({dataset:{action:"run-image"}});
+    }else{notify("Le studio image doit être configuré ou une photo doit être choisie.");}
+    return;
+  }
+  if(videoIntent){
+    state.view="video";state.draft="";render();
+    if(!state.videoInput){
+      const p=await invoke("pick",{kind:"video"});if(p)state.videoInput=p;
+    }
+    render();
+    notify("Vidéo reconnue : utilise « Créer mon Reel MP4 » pour lancer le montage.");
+    return;
+  }
   state.working=true;state.draft="";
   state.messages.push({role:"user",content:text},{role:"assistant",content:""});
   save();render();
@@ -152,6 +178,27 @@ async function action(el){
   if(a==="image-mode"){state.imageMode=el.dataset.mode;render();}
   if(a==="pick-image"){const p=await invoke("pick",{kind:"image"});if(p){state.imageInput=p;render();}}
   if(a==="pick-video"){const p=await invoke("pick",{kind:"video"});if(p){state.videoInput=p;render();}}
+  if(a==="install-all"){
+    await task("Configuration complète",async()=>{
+      state.notice="Installation Ollama…";render();
+      await invoke("install_component",{component:"chat"});
+      try{await invoke("start_engines",{component:"chat"});}catch{}
+      let connected=false;
+      for(let i=0;i<15;i++){
+        await new Promise(resolve=>setTimeout(resolve,1000));
+        const current=await invoke("status");
+        if(current.ollamaOnline){connected=true;break;}
+      }
+      if(!connected)throw Error("Ollama ne répond pas après installation. Redémarre Windows et reprends.");
+      state.notice="Téléchargement du modèle Qwen3…";render();
+      await invoke("model_pull");
+      state.notice="Installation du studio image et des modèles CUDA…";render();
+      await invoke("install_component",{component:"images"});
+      await invoke("start_engines",{component:"images"});
+      state.notice="Installation du studio vidéo…";render();
+      await invoke("install_component",{component:"video"});
+    });
+  }
   if(a==="install"){await task("Installation "+el.dataset.component,()=>invoke("install_component",{component:el.dataset.component}));}
   if(a==="start"){await task("Démarrage "+el.dataset.component,()=>invoke("start_engines",{component:el.dataset.component}));}
   if(a==="pull"){await task("Téléchargement Qwen3",()=>invoke("model_pull"));}
