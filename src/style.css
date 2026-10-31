@@ -20,3 +20,25 @@
 .onboard-panel p{font-size:11px;color:#68806b;line-height:1.6;max-width:540px;margin:7px 0 0}
 .onboard-panel button{border:0;background:#2a513b;color:white;border-radius:10px;padding:13px 18px;white-space:nowrap;font-weight:750;font-size:12px}
 @media(max-width:1050px){.onboard-panel{align-items:flex-start;flex-direction:column}}
+
+/* Chat file attachments — local, thumbnail-sized previews only */
+.composer-entry{display:flex;gap:10px;align-items:flex-start}
+.composer-entry textarea{flex:1;min-width:0}
+.attach-btn{border:1px solid #e0e8de;border-radius:11px;flex:none;width:42px;height:42px;font-size:27px;line-height:1;color:#53715a;background:#f5f8f3;display:grid;place-items:center}
+.attach-btn:not(:disabled):hover{background:#e7f0e5;border-color:#bed0bf}
+.pending-files{display:flex;flex-wrap:wrap;gap:9px;padding-bottom:14px;max-height:180px;overflow:auto}
+.pending-file{display:flex;gap:9px;align-items:center;max-width:min(290px,100%);min-width:190px;border:1px solid #e4e9df;background:#f8faf6;border-radius:11px;padding:7px}
+.pending-file img,.file-symbol{width:41px;height:41px;border-radius:7px;object-fit:cover;background:#e6ebe3;color:#53765d;flex:none}
+.file-symbol{font-size:25px;display:grid;place-items:center}
+.file-info{display:flex;flex-direction:column;gap:4px;overflow:hidden;flex:1}
+.file-info strong{font-size:11px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.file-info small{font-size:10px;color:#809184;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pending-file>button{border:0;background:transparent;color:#8a9990;font-size:18px;align-self:start;padding:0 5px}
+.pending-file>button:hover{color:#b04f4f}
+.history-attachments{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.history-file{font-size:11px;background:#eef3e9;color:#50765c;border:1px solid #dde6d7;border-radius:8px;padding:6px 9px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drop-overlay{position:absolute;inset:77px 0 0 0;background:#f4f8f2e8;backdrop-filter:blur(4px);z-index:8;display:grid;place-items:center;border:3px dashed #6c9876;margin:10px;border-radius:16px;pointer-events:none}
+.drop-inner{display:flex;align-items:center;flex-direction:column;gap:12px;text-align:center;color:#31543b}
+.drop-inner span{font-size:75px;font-weight:300}
+.drop-inner strong{font:800 23px Manrope,"Segoe UI",sans-serif}
+.drop-inner small{font-size:12px;color:#7d9381}
