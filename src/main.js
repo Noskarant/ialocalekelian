@@ -109,13 +109,15 @@ function settingsView(){
   const metric=(label,value)=>'<div class="metric"><span>'+label+'</span><strong>'+safe(value)+'</strong></div>';
   const stateChip=bool=>'<span class="chip '+(bool?"okay":"warn")+'">'+(bool?"● Prêt":"○ À installer")+'</span>';
   return '<div class="studio settings"><div class="eyebrow">TON ENVIRONNEMENT LOCAL</div><h1>Paramètres<span class="dot">.</span></h1><p class="lead">Un moteur à la fois sur la RTX 4060 pour préserver la VRAM et la stabilité.</p>'+
-  '<div class="onboard-panel"><div><strong>Configuration complète en un clic</strong><p>Installe Ollama, Qwen3, SDXL, ComfyUI, Whisper et FFmpeg. Connexion Internet et environ 25 Go libres requis.</p></div><button data-action="install-all" '+(state.working?'disabled':'')+'>✳ Tout configurer</button></div>'+ 
+  '<div class="onboard-panel"><div><strong>Configuration complète en un clic</strong><p>Installe Ollama, Qwen3, Vision 3B, SDXL, ComfyUI, Whisper et FFmpeg. Connexion Internet et environ 25 Go libres requis.</p></div><button data-action="install-all" '+(state.working?'disabled':'')+'>✳ Tout configurer</button></div>'+ 
   '<div class="settings-grid"><section class="panel padded"><div class="panel-title"><div>✧ <strong>Assistant conversationnel</strong></div>'+stateChip(ready())+'</div>'+
   '<p>Ollama + Qwen3 8B, avec une fenêtre de contexte adaptée à 8 Go de VRAM.</p>'+
   metric("Service Ollama",s.ollamaOnline?"En ligne":"Hors ligne")+metric("Modèle",s.modelReady?"Qwen3 8B installé":"Non téléchargé")+
+  metric("Vision (images jointes)",s.visionReady?"Qwen2.5-VL 3B installé":"Non téléchargé")+
   '<div class="panel-actions"><button class="secondary" data-action="install" data-component="chat" '+(state.working?"disabled":"")+'>Installer Ollama</button>'+
   '<button class="secondary" data-action="start" data-component="chat" '+(state.working?"disabled":"")+'>Démarrer</button>'+
-  '<button class="primary small-primary" data-action="pull" '+(!s.ollamaOnline||s.modelReady||state.working?"disabled":"")+'>Télécharger Qwen3</button></div>'+
+  '<button class="primary small-primary" data-action="pull" '+(!s.ollamaOnline||s.modelReady||state.working?"disabled":"")+'>Télécharger Qwen3</button>'+
+  '<button class="secondary" data-action="pull-vision" '+(!s.ollamaOnline||s.visionReady||state.working?"disabled":"")+'>Télécharger Vision 3B</button></div>'+
   '</section><section class="panel padded"><div class="panel-title"><div>▧ <strong>Studio image</strong></div>'+stateChip(s.comfyOnline)+'</div>'+
   '<p>ComfyUI, SDXL et Real-ESRGAN. Installation volumineuse, à lancer une seule fois.</p>'+
   metric("ComfyUI",s.comfyOnline?"Connecté":"Non démarré")+metric("Modèles détectés",String(s.checkpoints.length))+
@@ -128,7 +130,7 @@ function settingsView(){
   '<p>Contrôle mémoire pour éviter d’exécuter simultanément plusieurs modèles lourds.</p>'+
   metric("GPU détecté",s.gpuName||"Indisponible")+metric("VRAM utilisée",s.vramMb?((s.usedMb||0)/1024).toFixed(1)+" / "+(s.vramMb/1024).toFixed(1)+" Go":"Indisponible")+
   '<div class="panel-actions"><button class="secondary" data-action="free" '+(state.working?"disabled":"")+'>Libérer la VRAM</button><button class="secondary" data-action="refresh">↻ Diagnostic</button></div></section></div>'+
-  '<div class="footnote">Version 1.0.0 · Modules et modèles locaux · Premiers téléchargements : Internet requis · Aucun coût API.</div></div>';
+  '<div class="footnote">Version 1.1.0 · Modules et modèles locaux · Premiers téléchargements : Internet requis · Aucun coût API.</div></div>';
 }
 function render(){
   const content={chat:chatView,images:imageView,video:videoView,settings:settingsView}[state.view]();
