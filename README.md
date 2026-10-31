@@ -12,12 +12,14 @@ Application Windows locale, pensée pour le HP Victus i7-13700F / RTX 4060 8 Go 
 
 1. Télécharger le fichier Windows setup.exe dans [GitHub Releases](../../releases) **si la compilation est réussie**.
 2. Installer et ouvrir Atelier IA.
-3. Dans Paramètres, installer Ollama et télécharger Qwen3.
+3. Dans Paramètres, cliquer « Tout configurer » pour installer les moteurs en une opération (ou installer chaque module individuellement).
 4. Pour le studio image, installer ComfyUI, PyTorch CUDA, SDXL et Real-ESRGAN via le bouton prévu. Ensuite cliquer Démarrer ComfyUI.
 5. Pour la vidéo, installer FFmpeg et faster-whisper. Le modèle Whisper small se télécharge au premier montage.
 6. Utiliser les onglets Discussion, Images et Vidéo.
 
 **Espace disque :** prévoir au moins 25 Go d'espace disponible pour les différents moteurs et modèles. Leur téléchargement initial requiert Internet ; aucune inférence ne transite par un service IA externe.
+
+Les demandes explicites du type « génère une image… » ou « transforme cette vidéo en Reel… » sont redirigées localement vers le studio concerné. Le routage est basé sur des règles simples, et ne prétend pas comprendre toutes les formulations.
 
 ## Confidentialité et limites
 
