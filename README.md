@@ -21,6 +21,17 @@ Application Windows locale, pensée pour le HP Victus i7-13700F / RTX 4060 8 Go 
 
 Les demandes explicites du type « génère une image… » ou « transforme cette vidéo en Reel… » sont redirigées localement vers le studio concerné. Le routage est basé sur des règles simples, et ne prétend pas comprendre toutes les formulations.
 
+## Chat multimodal et pièces jointes (v1.1.0)
+
+Dans **Discussion**, cliquer sur **＋** ou glisser-déposer directement des fichiers dans le chat. On peut sélectionner plusieurs fichiers, voir leur nom/taille, aperçu miniature de photo et les retirer avant envoi.
+
+- **Images** PNG/JPG/WebP/GIF/BMP/TIFF : Qwen2.5-VL 3B quantifié (3,2 Go environ), jusqu'à 4 images par message. Résolution réduite localement pour la RTX 4060 8 Go. Installer le modèle Vision depuis Paramètres (ou Tout configurer).
+- **Documents** PDF avec couche texte, DOCX, PPTX, XLS/XLSX/ODS, TXT/MD/CSV/JSON/XML/HTML, fichiers code et logs : extraction locale de texte, extrait borné pour préserver le contexte. Certains documents complexes ou protégés peuvent être illisibles.
+- **Autres fichiers** : acceptés pour affichage dans le chat, mais le programme n'affirme pas analyser un format binaire inconnu. Les PDF scannés doivent être convertis en images pour la lecture visuelle.
+- Maximum **12 pièces par message**, dont **4 images analysables**, fichiers jusqu'à **2 Go** pour métadonnées ; documents analysés jusqu'à 32 Mo selon le format ; images jusqu'à 25 Mo.
+- Les chemins de fichiers sont gardés dans l'historique local. Si le fichier d'origine est déplacé ou supprimé, une réanalyse n'est pas garantie.
+- L'extraction des pièces jointes ne contacte aucun service distant. Les modèles sont chargés l'un après l'autre pour limiter l'utilisation VRAM.
+
 ## Confidentialité et limites
 
 - Pas de compte ou API payante requise.
